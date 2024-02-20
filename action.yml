@@ -20,8 +20,10 @@ inputs:
 
 # Define your outputs here.
 outputs:
-  project-v2-item-id:
-    description: 'The Id of the created project V2 item.'
+  command:
+    description: 'Echo of the executed command'
+  args:
+    description: 'Echo of the executed command arguments'
 
 runs:
   using: node20
