@@ -1,26 +1,77 @@
 import * as core from '@actions/core'
-import { wait } from './wait'
+import * as github from '@actions/github'
+import { Utils } from './utils'
+import { Config } from './config'
 
-/**
- * The main function for the action.
- * @returns {Promise<void>} Resolves when the action is complete.
- */
-export async function run(): Promise<void> {
-  try {
-    const ms: string = core.getInput('milliseconds')
+export namespace Action {
+  /**
+   * The main function for the action.
+   * @returns {Promise<void>} Resolves when the action is complete.
+   */
+  export async function run(): Promise<void> {
+    try {
+      const { context } = github
+      const payload = context.payload.issue || context.payload.pull_request
+      const commentBody = context.payload.comment?.body as string
 
-    // Debug logs are only output if the `ACTIONS_STEP_DEBUG` secret is true
-    core.debug(`Waiting ${ms} milliseconds ...`)
+      if (
+        !payload ||
+        !(
+          context.eventName === 'issue_comment' &&
+          context.payload.action === 'created'
+        )
+      ) {
+        core.warning('This action is only supposed on comment created.')
+        return
+      }
 
-    // Log the current timestamp, wait, then log the new timestamp
-    core.debug(new Date().toTimeString())
-    await wait(parseInt(ms, 10))
-    core.debug(new Date().toTimeString())
+      // Check if the first line of the comment is a slash command
+      const firstLine = commentBody.split(/\r?\n/)[0].trim()
+      if (firstLine.length < 2 || !firstLine.startsWith('/')) {
+        core.debug(
+          'The first line of the comment is not a valid slash command.'
+        )
+        return
+      }
 
-    // Set outputs for other workflow steps to use
-    core.setOutput('time', new Date().toTimeString())
-  } catch (error) {
-    // Fail the workflow run if an error occurs
-    if (error instanceof Error) core.setFailed(error.message)
+      const octokit = Utils.getOctokit()
+      const configPath = core.getInput('config_file')
+      const config = await Config.parse(octokit, configPath)
+      if (configPath) {
+        core.debug(
+          `Load config from "${configPath}": \n${JSON.stringify(
+            config,
+            null,
+            2
+          )}`
+        )
+      }
+
+      const { command, args } = Utils.tokenizeCommand(firstLine.slice(1))
+      core.debug(`Command Name: ${command}`)
+      core.debug(`Command Args: ${args}`)
+
+      if (context.payload.issue) {
+        core.debug(`Command for Issue`)
+      } else {
+        core.debug(`Command for Pull-Request`)
+      }
+
+      // const params = { ...context.repo, issue_number: payload.number }
+
+      const errorHandlingCmd = Utils.handleCommand(octokit, command, args)
+      if (errorHandlingCmd) {
+        core.setFailed(`Error: handling command: ${command}`)
+        return
+      }
+
+      core.setOutput('command', command)
+      core.setOutput('args', args.join(' '))
+    } catch (error) {
+      if (error instanceof Error) {
+        core.error(error)
+        core.setFailed(error.message)
+      }
+    }
   }
 }

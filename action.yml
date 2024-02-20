@@ -1,23 +1,27 @@
-name: 'The name of your action here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'Project Slash Commands'
+description: 'Slash commands for better GitHub Project management'
+author: 'floholz'
 
 # Add your action's branding here. This will appear on the GitHub Marketplace.
+# https://actions-cool.github.io/github-action-branding/
 branding:
-  icon: 'heart'
-  color: 'red'
+  icon: 'command'
+  color: 'yellow'
 
 # Define your inputs here.
 inputs:
-  milliseconds:
-    description: 'Your input description here'
+  github_token:
+    description: 'A GitHub personal access token with write access to the project.'
     required: true
-    default: '1000'
+  config_file:
+    description: 'Config file path relative to your repo`s root.'
+    required: false
+    default: '.github/workflows/config/project-slash-cmd.yml'
 
 # Define your outputs here.
 outputs:
-  time:
-    description: 'Your output description here'
+  project-v2-item-id:
+    description: 'The Id of the created project V2 item.'
 
 runs:
   using: node20
