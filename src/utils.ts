@@ -1,5 +1,6 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
+import { Config } from './config'
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function getOctokit() {
@@ -29,7 +30,7 @@ export function tokenizeCommand(command: string): {
 
 type Command = 'verify' | 'task'
 export function handleCommand(
-  octokit: ReturnType<typeof getOctokit>,
+  config: Config,
   command: Command | string,
   args: string[]
 ): boolean {
@@ -37,8 +38,27 @@ export function handleCommand(
     case 'verify':
       return true
     case 'task':
-      return true
+      return createTask(config, args)
     default:
       return false
   }
+}
+
+function createTask(config: Config, args: string[]): boolean {
+  if (args.length === 0) {
+    return false
+  }
+
+  let repoName = ''
+  for (const repo of config.definition.repositories) {
+    for (const key in repo) {
+      for (const handle of repo[key]) {
+        if (args[0] === handle) {
+          repoName = key
+          break
+        }
+      }
+    }
+  }
+  return true
 }

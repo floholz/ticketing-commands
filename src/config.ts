@@ -10,10 +10,15 @@ type Definition = {
   repositories: Repository[]
 }
 
+export type Config = {
+  octokit: ReturnType<typeof github.getOctokit>
+  definition: Definition
+}
+
 export async function parseConfig(
   octokit: ReturnType<typeof github.getOctokit>,
   path?: string
-): Promise<Definition> {
+): Promise<Config> {
   if (path) {
     const response = await octokit.rest.repos.getContent({
       ...github.context.repo,
@@ -24,11 +29,14 @@ export async function parseConfig(
     const content = Buffer.from(response.data as any, 'base64').toString()
 
     if (content) {
-      const config = yaml.load(content)
-      if (typeof config !== 'object') {
+      const definition = yaml.load(content)
+      if (typeof definition !== 'object') {
         throw new Error('Error reading config!')
       }
-      return config as Definition
+      return {
+        octokit,
+        definition
+      } as Config
     }
   }
 

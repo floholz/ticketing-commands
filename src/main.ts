@@ -52,7 +52,7 @@ export async function run(): Promise<void> {
 
     // const params = { ...context.repo, issue_number: payload.number }
 
-    const errorHandlingCmd = handleCommand(octokit, command, args)
+    const errorHandlingCmd = handleCommand(config, command, args)
     if (errorHandlingCmd) {
       core.setFailed(`Error: handling command: ${command}`)
       return
