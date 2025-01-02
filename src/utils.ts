@@ -27,9 +27,9 @@ export function tokenizeCommand(command: string): {
   }
 }
 
-// https://regex101.com/r/PS5iyi/1
+// https://regex101.com/r/L76z0B/1
 const TASKS_REGEX = /(?<header>###\sTasks)(?:\n-\s\[[\sx]][^\n]*)*/gm
-// https://regex101.com/r/VWh6KL/1
+// https://regex101.com/r/3g73WC/1
 const TASKS_EXTENDED_REGEX =
   /(?<header>###\sTasks)?\n-\s\[(?:\s|(?<done>x))]\s(?<task>[^\n]*)/gm
 export type IssueTask = {
