@@ -1,9 +1,8 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
-import { Config } from './config'
+import { Repositories } from './config'
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-export function getOctokit() {
+export function getOctokit(): ReturnType<typeof github.getOctokit> {
   const token = core.getInput('github_token', { required: true })
   return github.getOctokit(token)
 }
@@ -28,37 +27,56 @@ export function tokenizeCommand(command: string): {
   }
 }
 
-type Command = 'verify' | 'task'
-export function handleCommand(
-  config: Config,
-  command: Command | string,
-  args: string[]
-): boolean {
-  switch (command) {
-    case 'verify':
-      return true
-    case 'task':
-      return createTask(config, args)
-    default:
-      return false
-  }
+// https://regex101.com/r/PS5iyi/1
+const TASKS_REGEX = /(?<header>###\sTasks)(?:\n-\s\[[\sx]][^\n]*)*/gm
+// https://regex101.com/r/VWh6KL/1
+const TASKS_EXTENDED_REGEX =
+  /(?<header>###\sTasks)?\n-\s\[(?:\s|(?<done>x))]\s(?<task>[^\n]*)/gm
+export type IssueTask = {
+  name: string
+  done: boolean
 }
-
-function createTask(config: Config, args: string[]): boolean {
-  if (args.length === 0) {
-    return false
+export function parseIssueBodyForTasks(body: string): number {
+  const match = TASKS_REGEX.exec(body)
+  if (!match || !match.groups?.header) {
+    return -1
   }
-
-  let repoName = ''
-  for (const repo of config.definition.repositories) {
-    for (const key in repo) {
-      for (const handle of repo[key]) {
-        if (args[0] === handle) {
-          repoName = key
-          break
-        }
+  return match.index + match[0].length
+}
+export function parseRepoName(searchTag: string, repos: Repositories): string {
+  for (const repoName in repos) {
+    for (const repoTag of repos[repoName]) {
+      if (searchTag === repoTag) {
+        return repoName
       }
     }
   }
-  return true
+  return ''
+}
+
+export function subTaskIssueBody(description?: string): string {
+  let body = `### Description\n`
+  if (description) {
+    body += `${description}\n`
+  }
+  return body
+}
+
+export function addTaskToIssueBody(subTask: string, body?: string): string {
+  if (!body) {
+    body = ''
+  }
+  let bodyTaskIdx = parseIssueBodyForTasks(body)
+  if (bodyTaskIdx === -1) {
+    if (body.length > 0) {
+      body += `\n\n`
+    }
+    body += `### Tasks:`
+    bodyTaskIdx = body.length
+  }
+  body = `${body.slice(0, bodyTaskIdx)}\n- [ ] ${subTask}${body.slice(bodyTaskIdx)}`
+  if (!body.endsWith('\n')) {
+    body += `\n`
+  }
+  return body
 }

@@ -1,13 +1,13 @@
 import * as github from '@actions/github'
 import yaml from 'js-yaml'
 
-type Repository = {
-  [repo: string]: string[]
+export type Repositories = {
+  [repoName: string]: string[]
 }
 
 type Definition = {
   project_url: string
-  repositories: Repository[]
+  repositories: Repositories
 }
 
 export type Config = {
