@@ -82,7 +82,7 @@ export class TicketingAction {
       )
     }
 
-    const repoName = parseRepoName(args[0], this.config.definition.repositories)
+    const repoName = parseRepoName(args[0], this.config.repositories)
     core.debug(`parsed repo name: '${repoName}'`)
     if (!repoName) {
       throw new Error(`Could not parse sub-repository from args: ${args[0]}`)
@@ -119,6 +119,7 @@ export class TicketingAction {
     issueTitle: string
   ): Promise<string | null> {
     const { owner } = github.context.repo
+    core.debug(`owner: ${owner}`)
     const { data: issue } = await this.octokit.rest.issues.create({
       owner,
       repo: repoName,

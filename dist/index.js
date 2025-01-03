@@ -34015,14 +34015,11 @@ async function parseConfig(octokit, path) {
         throw new Error(`Config path '${path}' does not refer to a file.`);
     }
     const content = Buffer.from(response.data.content, 'base64').toString();
-    const definition = js_yaml_1.default.load(content);
-    if (typeof definition !== 'object') {
+    const config = js_yaml_1.default.load(content);
+    if (typeof config !== 'object') {
         throw new Error('Error reading config: Parsed content is not an object');
     }
-    return {
-        octokit,
-        definition
-    };
+    return config;
 }
 
 
@@ -34214,7 +34211,7 @@ class TicketingAction {
         if (args.length === 0) {
             throw new Error(`No arguments provided. At least one argument, for the repository name, must be provided`);
         }
-        const repoName = (0, utils_1.parseRepoName)(args[0], this.config.definition.repositories);
+        const repoName = (0, utils_1.parseRepoName)(args[0], this.config.repositories);
         core.debug(`parsed repo name: '${repoName}'`);
         if (!repoName) {
             throw new Error(`Could not parse sub-repository from args: ${args[0]}`);
@@ -34243,6 +34240,7 @@ class TicketingAction {
     }
     async createIssue(repoName, issueTitle) {
         const { owner } = github.context.repo;
+        core.debug(`owner: ${owner}`);
         const { data: issue } = await this.octokit.rest.issues.create({
             owner,
             repo: repoName,

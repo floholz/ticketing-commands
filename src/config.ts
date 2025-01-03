@@ -5,14 +5,9 @@ export type Repositories = {
   [repoName: string]: string[]
 }
 
-type Definition = {
+export type Config = {
   project_url: string
   repositories: Repositories
-}
-
-export type Config = {
-  octokit: ReturnType<typeof github.getOctokit>
-  definition: Definition
 }
 
 export async function parseConfig(
@@ -32,12 +27,9 @@ export async function parseConfig(
   }
 
   const content = Buffer.from(response.data.content, 'base64').toString()
-  const definition = yaml.load(content)
-  if (typeof definition !== 'object') {
+  const config = yaml.load(content)
+  if (typeof config !== 'object') {
     throw new Error('Error reading config: Parsed content is not an object')
   }
-  return {
-    octokit,
-    definition
-  } as Config
+  return config as Config
 }
