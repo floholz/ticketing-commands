@@ -25,6 +25,7 @@ export class TicketingAction {
     if (!config) {
       throw new Error(`Could not parse config: ${configPath}`)
     }
+    this.config = config
     core.debug(
       `Load config from "${configPath}": \n${JSON.stringify(this.config, null, 2)}`
     )

@@ -19,26 +19,25 @@ export async function parseConfig(
   octokit: ReturnType<typeof github.getOctokit>,
   path?: string
 ): Promise<Config> {
-  if (path) {
-    const response = await octokit.rest.repos.getContent({
-      ...github.context.repo,
-      path
-    })
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const content = Buffer.from(response.data as any, 'base64').toString()
-
-    if (content) {
-      const definition = yaml.load(content)
-      if (typeof definition !== 'object') {
-        throw new Error('Error reading config!')
-      }
-      return {
-        octokit,
-        definition
-      } as Config
-    }
+  if (!path) {
+    throw new Error('Error reading config!')
   }
 
-  throw new Error('Error reading config!')
+  const response = await octokit.rest.repos.getContent({
+    ...github.context.repo,
+    path
+  })
+  if (!('content' in response.data)) {
+    throw new Error(`Config path '${path}' does not refer to a file.`)
+  }
+
+  const content = Buffer.from(response.data.content, 'base64').toString()
+  const definition = yaml.load(content)
+  if (typeof definition !== 'object') {
+    throw new Error('Error reading config: Parsed content is not an object')
+  }
+  return {
+    octokit,
+    definition
+  } as Config
 }
