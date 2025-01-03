@@ -3,7 +3,8 @@ import * as github from '@actions/github'
 import {
   addTaskToIssueBody,
   getOctokit,
-  parseRepoName,
+  parseRepoString,
+  splitRepoAndOwner,
   subTaskIssueBody,
   tokenizeCommand
 } from './utils'
@@ -82,9 +83,9 @@ export class TicketingAction {
       )
     }
 
-    const repoName = parseRepoName(args[0], this.config.repositories)
-    core.debug(`parsed repo name: '${repoName}'`)
-    if (!repoName) {
+    const repoString = parseRepoString(args[0], this.config.repositories)
+    core.debug(`parsed repo name: '${repoString}'`)
+    if (!repoString) {
       throw new Error(`Could not parse sub-repository from args: ${args[0]}`)
     }
     let subTaskName: string
@@ -94,14 +95,14 @@ export class TicketingAction {
       subTaskName = 'Task'
     }
     core.debug(`parsed sub task: '${subTaskName}'`)
-    const subTask = await this.createIssue(repoName, subTaskName)
+    const subTask = await this.createIssue(repoString, subTaskName)
     if (!subTask) {
       throw new Error(
-        `Could not create issue in sub-repository [${repoName}]: ${subTaskName}`
+        `Could not create issue in sub-repository [${repoString}]: ${subTaskName}`
       )
     }
     core.debug(
-      `Created issue for task in sub-repository [${repoName}]: ${subTaskName}`
+      `Created issue for task in sub-repository [${repoString}]: ${subTaskName}`
     )
     const updated = await this.updateIssueWithSubTask(subTask)
     if (!updated) {
@@ -115,21 +116,22 @@ export class TicketingAction {
   }
 
   private async createIssue(
-    repoName: string,
+    repoString: string,
     issueTitle: string
   ): Promise<string | null> {
-    const { owner } = github.context.repo
+    const { owner, repo } = splitRepoAndOwner(repoString)
     core.debug(`owner: ${owner}`)
+    core.debug(`repo: ${repo}`)
     const { data: issue } = await this.octokit.rest.issues.create({
       owner,
-      repo: repoName,
+      repo,
       title: issueTitle,
       body: subTaskIssueBody()
     })
     if (!issue) {
       return null
     }
-    return `${repoName}#${issue.number}`
+    return `${repoString}#${issue.number}`
   }
 
   private async updateIssueWithSubTask(subTask: string): Promise<boolean> {

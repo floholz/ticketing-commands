@@ -43,7 +43,10 @@ export function parseIssueBodyForTasks(body: string): number {
   }
   return match.index + match[0].length
 }
-export function parseRepoName(searchTag: string, repos: Repositories): string {
+export function parseRepoString(
+  searchTag: string,
+  repos: Repositories
+): string {
   for (const repoName in repos) {
     for (const repoTag of repos[repoName]) {
       if (searchTag === repoTag) {
@@ -52,6 +55,22 @@ export function parseRepoName(searchTag: string, repos: Repositories): string {
     }
   }
   return ''
+}
+
+export function splitRepoAndOwner(repoString: string): {
+  owner: string
+  repo: string
+} {
+  const splits = repoString.split('/')
+  if (splits.length !== 2) {
+    throw new Error(
+      `Repo string '${repoString}' could not be split into 'owner' and 'repo'`
+    )
+  }
+  return {
+    owner: splits[0],
+    repo: splits[1]
+  }
 }
 
 export function subTaskIssueBody(description?: string): string {

@@ -34211,9 +34211,9 @@ class TicketingAction {
         if (args.length === 0) {
             throw new Error(`No arguments provided. At least one argument, for the repository name, must be provided`);
         }
-        const repoName = (0, utils_1.parseRepoName)(args[0], this.config.repositories);
-        core.debug(`parsed repo name: '${repoName}'`);
-        if (!repoName) {
+        const repoString = (0, utils_1.parseRepoString)(args[0], this.config.repositories);
+        core.debug(`parsed repo name: '${repoString}'`);
+        if (!repoString) {
             throw new Error(`Could not parse sub-repository from args: ${args[0]}`);
         }
         let subTaskName;
@@ -34224,11 +34224,11 @@ class TicketingAction {
             subTaskName = 'Task';
         }
         core.debug(`parsed sub task: '${subTaskName}'`);
-        const subTask = await this.createIssue(repoName, subTaskName);
+        const subTask = await this.createIssue(repoString, subTaskName);
         if (!subTask) {
-            throw new Error(`Could not create issue in sub-repository [${repoName}]: ${subTaskName}`);
+            throw new Error(`Could not create issue in sub-repository [${repoString}]: ${subTaskName}`);
         }
-        core.debug(`Created issue for task in sub-repository [${repoName}]: ${subTaskName}`);
+        core.debug(`Created issue for task in sub-repository [${repoString}]: ${subTaskName}`);
         const updated = await this.updateIssueWithSubTask(subTask);
         if (!updated) {
             throw new Error(`Failed to update issue with subtask: ${subTask}`);
@@ -34238,19 +34238,20 @@ class TicketingAction {
     async verifyTask() {
         throw new Error(`Not implemented`);
     }
-    async createIssue(repoName, issueTitle) {
-        const { owner } = github.context.repo;
+    async createIssue(repoString, issueTitle) {
+        const { owner, repo } = (0, utils_1.splitRepoAndOwner)(repoString);
         core.debug(`owner: ${owner}`);
+        core.debug(`repo: ${repo}`);
         const { data: issue } = await this.octokit.rest.issues.create({
             owner,
-            repo: repoName,
+            repo,
             title: issueTitle,
             body: (0, utils_1.subTaskIssueBody)()
         });
         if (!issue) {
             return null;
         }
-        return `${repoName}#${issue.number}`;
+        return `${repoString}#${issue.number}`;
     }
     async updateIssueWithSubTask(subTask) {
         const { owner, repo, number } = github.context.issue;
@@ -34324,7 +34325,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getOctokit = getOctokit;
 exports.tokenizeCommand = tokenizeCommand;
 exports.parseIssueBodyForTasks = parseIssueBodyForTasks;
-exports.parseRepoName = parseRepoName;
+exports.parseRepoString = parseRepoString;
+exports.splitRepoAndOwner = splitRepoAndOwner;
 exports.subTaskIssueBody = subTaskIssueBody;
 exports.addTaskToIssueBody = addTaskToIssueBody;
 const core = __importStar(__nccwpck_require__(2186));
@@ -34357,7 +34359,7 @@ function parseIssueBodyForTasks(body) {
     }
     return match.index + match[0].length;
 }
-function parseRepoName(searchTag, repos) {
+function parseRepoString(searchTag, repos) {
     for (const repoName in repos) {
         for (const repoTag of repos[repoName]) {
             if (searchTag === repoTag) {
@@ -34366,6 +34368,16 @@ function parseRepoName(searchTag, repos) {
         }
     }
     return '';
+}
+function splitRepoAndOwner(repoString) {
+    const splits = repoString.split('/');
+    if (splits.length !== 2) {
+        throw new Error(`Repo string '${repoString}' could not be split into 'owner' and 'repo'`);
+    }
+    return {
+        owner: splits[0],
+        repo: splits[1]
+    };
 }
 function subTaskIssueBody(description) {
     let body = `### Description\n`;
