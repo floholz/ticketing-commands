@@ -34004,25 +34004,25 @@ exports.parseConfig = parseConfig;
 const github = __importStar(__nccwpck_require__(5438));
 const js_yaml_1 = __importDefault(__nccwpck_require__(1917));
 async function parseConfig(octokit, path) {
-    if (path) {
-        const response = await octokit.rest.repos.getContent({
-            ...github.context.repo,
-            path
-        });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const content = Buffer.from(response.data, 'base64').toString();
-        if (content) {
-            const definition = js_yaml_1.default.load(content);
-            if (typeof definition !== 'object') {
-                throw new Error('Error reading config!');
-            }
-            return {
-                octokit,
-                definition
-            };
-        }
+    if (!path) {
+        throw new Error('Error reading config!');
     }
-    throw new Error('Error reading config!');
+    const response = await octokit.rest.repos.getContent({
+        ...github.context.repo,
+        path
+    });
+    if (!('content' in response.data)) {
+        throw new Error(`Config path '${path}' does not refer to a file.`);
+    }
+    const content = Buffer.from(response.data.content, 'base64').toString();
+    const definition = js_yaml_1.default.load(content);
+    if (typeof definition !== 'object') {
+        throw new Error('Error reading config: Parsed content is not an object');
+    }
+    return {
+        octokit,
+        definition
+    };
 }
 
 
