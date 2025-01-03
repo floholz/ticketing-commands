@@ -34215,6 +34215,7 @@ class TicketingAction {
             throw new Error(`No arguments provided. At least one argument, for the repository name, must be provided`);
         }
         const repoName = (0, utils_1.parseRepoName)(args[0], this.config.definition.repositories);
+        core.debug(`parsed repo name: '${repoName}'`);
         if (!repoName) {
             throw new Error(`Could not parse sub-repository from args: ${args[0]}`);
         }
@@ -34225,6 +34226,7 @@ class TicketingAction {
         else {
             subTaskName = 'Task';
         }
+        core.debug(`parsed sub task: '${subTaskName}'`);
         const subTask = await this.createIssue(repoName, subTaskName);
         if (!subTask) {
             throw new Error(`Could not create issue in sub-repository [${repoName}]: ${subTaskName}`);
@@ -34248,7 +34250,7 @@ class TicketingAction {
             body: (0, utils_1.subTaskIssueBody)()
         });
         if (!issue) {
-            return '';
+            return null;
         }
         return `${repoName}#${issue.number}`;
     }

@@ -83,6 +83,7 @@ export class TicketingAction {
     }
 
     const repoName = parseRepoName(args[0], this.config.definition.repositories)
+    core.debug(`parsed repo name: '${repoName}'`)
     if (!repoName) {
       throw new Error(`Could not parse sub-repository from args: ${args[0]}`)
     }
@@ -92,6 +93,7 @@ export class TicketingAction {
     } else {
       subTaskName = 'Task'
     }
+    core.debug(`parsed sub task: '${subTaskName}'`)
     const subTask = await this.createIssue(repoName, subTaskName)
     if (!subTask) {
       throw new Error(
@@ -115,7 +117,7 @@ export class TicketingAction {
   private async createIssue(
     repoName: string,
     issueTitle: string
-  ): Promise<string> {
+  ): Promise<string | null> {
     const { owner } = github.context.repo
     const { data: issue } = await this.octokit.rest.issues.create({
       owner,
@@ -124,7 +126,7 @@ export class TicketingAction {
       body: subTaskIssueBody()
     })
     if (!issue) {
-      return ''
+      return null
     }
     return `${repoName}#${issue.number}`
   }
