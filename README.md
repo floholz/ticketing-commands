@@ -41,7 +41,7 @@ repositories:
 
 | Command | Arguments            | Description                                                                             | Example                                  |
 |--------|----------------------|-----------------------------------------------------------------------------------------|------------------------------------------|
-| /task  | repo_tag, task_title | Create a new issue in the provided repository <br/> and add it as a task to this issue. | /task client Change hewader color to red |
+| /task  | repo_tag, <br> task_title | Create a new issue in the provided repository and add it as a task to this issue. | /task client Change header color to red |
 
 
 ## Example Workflow
