@@ -1,21 +1,26 @@
 {
-  "name": "project-slash-cmd-action",
+  "name": "ticketing-commands",
   "description": "Slash commands for better GitHub Project management (GitHub Actions)",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "author": "floholz",
   "private": true,
-  "homepage": "https://github.com/floholz/project-slash-cmd",
+  "homepage": "https://github.com/floholz/ticketing-commands",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/floholz/project-slash-cmd.git"
+    "url": "git+https://github.com/floholz/ticketing-commands.git"
   },
   "bugs": {
-    "url": "https://github.com/floholz/project-slash-cmd/issues"
+    "url": "https://github.com/floholz/ticketing-commands/issues"
   },
   "keywords": [
-    "actions",
+    "action",
     "node",
-    "setup"
+    "project",
+    "command",
+    "slash",
+    "issue",
+    "task",
+    "ticket"
   ],
   "exports": {
     ".": "./dist/index.js"
