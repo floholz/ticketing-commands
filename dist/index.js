@@ -33958,6 +33958,48 @@ function wrappy (fn, cb) {
 
 /***/ }),
 
+/***/ 6879:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.reposGetCollaboratorPermissionLevel = reposGetCollaboratorPermissionLevel;
+exports.issuesCreate = issuesCreate;
+exports.issuesUpdate = issuesUpdate;
+async function reposGetCollaboratorPermissionLevel(octokit, owner, repo, username) {
+    const { data: { permission } } = await octokit.rest.repos.getCollaboratorPermissionLevel({
+        owner,
+        repo,
+        username
+    });
+    return permission;
+}
+async function issuesCreate(octokit, owner, repo, title, body) {
+    const { data: issue } = await octokit.rest.issues.create({
+        owner,
+        repo,
+        title,
+        body
+    });
+    if (!issue) {
+        return null;
+    }
+    return `${owner}/${repo}#${issue.number}`;
+}
+async function issuesUpdate(octokit, owner, repo, issue_number, body) {
+    const resp = await octokit.rest.issues.update({
+        owner,
+        repo,
+        issue_number,
+        body
+    });
+    return resp.status === 200;
+}
+
+
+/***/ }),
+
 /***/ 2973:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -34025,6 +34067,56 @@ async function parseConfig(octokit, path) {
 
 /***/ }),
 
+/***/ 9407:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+/**
+ * The entrypoint for the action.
+ */
+const main_1 = __nccwpck_require__(1730);
+const github = __importStar(__nccwpck_require__(3228));
+const { context } = github;
+void (0, main_1.run)(context);
+
+
+/***/ }),
+
 /***/ 1730:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -34066,18 +34158,16 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = run;
 const core = __importStar(__nccwpck_require__(7484));
-const github = __importStar(__nccwpck_require__(3228));
-const ticketingAction_1 = __nccwpck_require__(6281);
+const ticketing_1 = __nccwpck_require__(339);
 /**
  * The main function for the action.
  * @returns {Promise<void>} Resolves when the action is complete.
  */
-async function run() {
+async function run(context) {
     try {
         core.debug(`[1] setup action context`);
-        const { context } = github;
-        const payload = context.payload.issue || context.payload.pull_request;
-        const commentBody = context.payload.comment?.body;
+        const payload = context?.payload.issue || context?.payload.pull_request;
+        const commentBody = context?.payload.comment?.body;
         core.debug(`[2] check event trigger`);
         if (!payload ||
             !(context.eventName === 'issue_comment' &&
@@ -34093,7 +34183,7 @@ async function run() {
             return;
         }
         core.debug(`[4] setup action logic`);
-        const action = new ticketingAction_1.TicketingAction();
+        const action = new ticketing_1.TicketingAction(context);
         core.debug(`[5] setup action config`);
         const configPath = core.getInput('config_file');
         await action.loadConfig(configPath);
@@ -34112,7 +34202,7 @@ async function run() {
 
 /***/ }),
 
-/***/ 6281:
+/***/ 339:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -34153,14 +34243,15 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.TicketingAction = void 0;
 const config_1 = __nccwpck_require__(2973);
-const github = __importStar(__nccwpck_require__(3228));
 const utils_1 = __nccwpck_require__(1798);
 const core = __importStar(__nccwpck_require__(7484));
+const api_1 = __nccwpck_require__(6879);
 class TicketingAction {
-    payload;
+    context;
     octokit;
     config;
-    constructor() {
+    constructor(context) {
+        this.context = context;
         this.octokit = (0, utils_1.getOctokit)();
     }
     async loadConfig(configPath) {
@@ -34176,12 +34267,10 @@ class TicketingAction {
         if (!permResult) {
             throw new Error(`Command author is not permitted to perform this action`);
         }
-        if (github.context.payload.issue) {
-            this.payload = github.context.payload.issue;
+        if (this.context.payload.issue) {
             core.debug(`Command for Issue`);
         }
-        else if (github.context.payload.pull_request) {
-            this.payload = github.context.payload.pull_request;
+        else if (this.context.payload.pull_request) {
             core.debug(`Command for Pull-Request`);
         }
         const { command, args } = (0, utils_1.tokenizeCommand)(commandLine.slice(1));
@@ -34242,40 +34331,21 @@ class TicketingAction {
         const { owner, repo } = (0, utils_1.splitRepoAndOwner)(repoString);
         core.debug(`owner: ${owner}`);
         core.debug(`repo: ${repo}`);
-        const { data: issue } = await this.octokit.rest.issues.create({
-            owner,
-            repo,
-            title: issueTitle,
-            body: (0, utils_1.subTaskIssueBody)()
-        });
-        if (!issue) {
-            return null;
-        }
-        return `${repoString}#${issue.number}`;
+        return (0, api_1.issuesCreate)(this.octokit, owner, repo, issueTitle, (0, utils_1.subTaskIssueBody)());
     }
     async updateIssueWithSubTask(subTask) {
-        const { owner, repo, number } = github.context.issue;
-        const body = (0, utils_1.addTaskToIssueBody)(subTask, this.payload?.body);
-        const resp = await this.octokit.rest.issues.update({
-            owner,
-            repo,
-            issue_number: number,
-            body
-        });
-        return resp.status === 200;
+        const { owner, repo, number } = this.context.issue;
+        const body = (0, utils_1.addTaskToIssueBody)(subTask, this.context.payload?.body);
+        return (0, api_1.issuesUpdate)(this.octokit, owner, repo, number, body);
     }
     async checkAuthorPermissions() {
-        const { owner, repo } = github.context.repo;
-        const commentAuthor = github.context.payload.comment?.user?.login;
+        const { owner, repo } = this.context.repo;
+        const commentAuthor = this.context.payload.comment?.user?.login;
         if (!commentAuthor) {
             return false;
         }
-        const { data: { permission } } = await this.octokit.rest.repos.getCollaboratorPermissionLevel({
-            owner,
-            repo,
-            username: commentAuthor
-        });
-        return permission === 'read' || permission === 'admin';
+        const permission = await (0, api_1.reposGetCollaboratorPermissionLevel)(this.octokit, owner, repo, commentAuthor);
+        return permission === 'write' || permission === 'admin';
     }
 }
 exports.TicketingAction = TicketingAction;
@@ -36305,22 +36375,12 @@ module.exports = parseParams
 /******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";
 /******/ 	
 /************************************************************************/
-var __webpack_exports__ = {};
-// This entry need to be wrapped in an IIFE because it need to be in strict mode.
-(() => {
-"use strict";
-var exports = __webpack_exports__;
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-/**
- * The entrypoint for the action.
- */
-const main_1 = __nccwpck_require__(1730);
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
-(0, main_1.run)();
-
-})();
-
-module.exports = __webpack_exports__;
+/******/ 	
+/******/ 	// startup
+/******/ 	// Load entry module and return exports
+/******/ 	// This entry module is referenced by other modules so it can't be inlined
+/******/ 	var __webpack_exports__ = __nccwpck_require__(9407);
+/******/ 	module.exports = __webpack_exports__;
+/******/ 	
 /******/ })()
 ;

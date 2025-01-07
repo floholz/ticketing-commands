@@ -63,6 +63,10 @@
     "collectCoverage": true,
     "collectCoverageFrom": [
       "./src/**"
+    ],
+    "coveragePathIgnorePatterns": [
+      "./src/api.ts",
+      "./src/config.ts"
     ]
   },
   "dependencies": {
