@@ -1,4 +1,4 @@
-name: 'Project Slash Commands'
+name: 'Ticketing Commands'
 description: 'Slash commands for better GitHub Project management'
 author: 'floholz'
 
@@ -16,7 +16,7 @@ inputs:
   config_file:
     description: 'Config file path relative to your repo`s root.'
     required: false
-    default: '.github/workflows/config/project-slash-cmd.yml'
+    default: '.github/workflows/config/ticketing-cmd.yml'
 
 # Define your outputs here.
 outputs:
