@@ -9,15 +9,20 @@ import {
   tokenizeCommand
 } from './utils'
 import * as core from '@actions/core'
+import { Context } from '@actions/github/lib/context'
+import {
+  issuesCreate,
+  issuesUpdate,
+  reposGetCollaboratorPermissionLevel
+} from './api'
 
 type Command = 'verify' | 'task'
 export class TicketingAction {
-  payload:
-    | typeof github.context.payload.issue
-    | typeof github.context.payload.pull_request
+  context: Context
   octokit: ReturnType<typeof github.getOctokit>
   config?: Config
-  constructor() {
+  constructor(context: Context) {
+    this.context = context
     this.octokit = getOctokit()
   }
 
@@ -38,11 +43,9 @@ export class TicketingAction {
       throw new Error(`Command author is not permitted to perform this action`)
     }
 
-    if (github.context.payload.issue) {
-      this.payload = github.context.payload.issue
+    if (this.context.payload.issue) {
       core.debug(`Command for Issue`)
-    } else if (github.context.payload.pull_request) {
-      this.payload = github.context.payload.pull_request
+    } else if (this.context.payload.pull_request) {
       core.debug(`Command for Pull-Request`)
     }
 
@@ -122,43 +125,33 @@ export class TicketingAction {
     const { owner, repo } = splitRepoAndOwner(repoString)
     core.debug(`owner: ${owner}`)
     core.debug(`repo: ${repo}`)
-    const { data: issue } = await this.octokit.rest.issues.create({
+    return issuesCreate(
+      this.octokit,
       owner,
       repo,
-      title: issueTitle,
-      body: subTaskIssueBody()
-    })
-    if (!issue) {
-      return null
-    }
-    return `${repoString}#${issue.number}`
+      issueTitle,
+      subTaskIssueBody()
+    )
   }
 
   private async updateIssueWithSubTask(subTask: string): Promise<boolean> {
-    const { owner, repo, number } = github.context.issue
-    const body = addTaskToIssueBody(subTask, this.payload?.body)
-    const resp = await this.octokit.rest.issues.update({
-      owner,
-      repo,
-      issue_number: number,
-      body
-    })
-    return resp.status === 200
+    const { owner, repo, number } = this.context.issue
+    const body = addTaskToIssueBody(subTask, this.context.payload?.body)
+    return issuesUpdate(this.octokit, owner, repo, number, body)
   }
 
   private async checkAuthorPermissions(): Promise<boolean> {
-    const { owner, repo } = github.context.repo
-    const commentAuthor = github.context.payload.comment?.user?.login
+    const { owner, repo } = this.context.repo
+    const commentAuthor = this.context.payload.comment?.user?.login
     if (!commentAuthor) {
       return false
     }
-    const {
-      data: { permission }
-    } = await this.octokit.rest.repos.getCollaboratorPermissionLevel({
+    const permission = await reposGetCollaboratorPermissionLevel(
+      this.octokit,
       owner,
       repo,
-      username: commentAuthor
-    })
-    return permission === 'read' || permission === 'admin'
+      commentAuthor
+    )
+    return permission === 'write' || permission === 'admin'
   }
 }

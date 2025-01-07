@@ -2,6 +2,7 @@
  * The entrypoint for the action.
  */
 import { run } from './main'
+import * as github from '@actions/github'
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
-run()
+const { context } = github
+void run(context)

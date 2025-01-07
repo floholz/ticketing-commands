@@ -1,17 +1,16 @@
 import * as core from '@actions/core'
-import * as github from '@actions/github'
-import { TicketingAction } from './ticketingAction'
+import { TicketingAction } from './ticketing'
+import { Context } from '@actions/github/lib/context'
 
 /**
  * The main function for the action.
  * @returns {Promise<void>} Resolves when the action is complete.
  */
-export async function run(): Promise<void> {
+export async function run(context?: Context): Promise<void> {
   try {
     core.debug(`[1] setup action context`)
-    const { context } = github
-    const payload = context.payload.issue || context.payload.pull_request
-    const commentBody = context.payload.comment?.body as string
+    const payload = context?.payload.issue || context?.payload.pull_request
+    const commentBody = context?.payload.comment?.body as string
 
     core.debug(`[2] check event trigger`)
     if (
@@ -35,14 +34,14 @@ export async function run(): Promise<void> {
       return
     }
 
-    core.debug(`[3] setup action logic`)
-    const action = new TicketingAction()
-    core.debug(`[4] setup action config`)
+    core.debug(`[4] setup action logic`)
+    const action = new TicketingAction(context)
+    core.debug(`[5] setup action config`)
     const configPath = core.getInput('config_file')
     await action.loadConfig(configPath)
-    core.debug(`[5] run action logic`)
+    core.debug(`[6] run action logic`)
     await action.runCommand(firstLine)
-    core.debug(`[6] all done`)
+    core.debug(`[7] all done`)
   } catch (error) {
     if (error instanceof Error) {
       core.error(error)
