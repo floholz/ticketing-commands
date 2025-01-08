@@ -49,26 +49,34 @@ export class TicketingAction {
       core.debug(`Command for Pull-Request`)
     }
 
-    const { command, args } = tokenizeCommand(commandLine.slice(1))
+    const tokenizedResult = tokenizeCommand(commandLine)
+    if (!tokenizedResult) {
+      core.warning(`Could not parse command line`)
+      return
+    }
+    const { command, args, body } = tokenizedResult
     core.debug(`Command Name: ${command}`)
-    core.debug(`Command Args: ${args}`)
+    core.debug(`Command Args: ${args.join(' ')}`)
+    core.debug(`Command Body: ${body}`)
 
-    await this.handleCommand(command, args)
+    await this.handleCommand(command, args, body)
 
     core.setOutput('command', command)
     core.setOutput('args', args.join(' '))
+    core.setOutput('body', body)
   }
 
   private async handleCommand(
     command: Command | string,
-    args: string[]
+    args: string[],
+    body?: string
   ): Promise<boolean> {
     switch (command) {
       case 'verify':
         await this.verifyTask()
         return true
       case 'task':
-        await this.createTask(args)
+        await this.createTask(args, body)
         return true
       default:
         core.debug(`unknown command: ${command}`)
@@ -76,7 +84,7 @@ export class TicketingAction {
     }
   }
 
-  private async createTask(args: string[]): Promise<void> {
+  private async createTask(args: string[], body?: string): Promise<void> {
     if (!this.config) {
       throw new Error(`Config must be loaded first`)
     }
@@ -91,21 +99,21 @@ export class TicketingAction {
     if (!repoString) {
       throw new Error(`Could not parse sub-repository from args: ${args[0]}`)
     }
-    let subTaskName: string
+    let subTaskTitle: string
     if (args.length > 1) {
-      subTaskName = args.slice(1).join(' ')
+      subTaskTitle = args.slice(1).join(' ')
     } else {
-      subTaskName = 'Task'
+      subTaskTitle = 'Task'
     }
-    core.debug(`parsed sub task: '${subTaskName}'`)
-    const subTask = await this.createIssue(repoString, subTaskName)
+    core.debug(`parsed sub task: '${subTaskTitle}'`)
+    const subTask = await this.createIssue(repoString, subTaskTitle, body)
     if (!subTask) {
       throw new Error(
-        `Could not create issue in sub-repository [${repoString}]: ${subTaskName}`
+        `Could not create issue in sub-repository [${repoString}]: ${subTaskTitle}`
       )
     }
     core.debug(
-      `Created issue for task in sub-repository [${repoString}]: ${subTaskName}`
+      `Created issue for task in sub-repository [${repoString}]: ${subTaskTitle}`
     )
     const updated = await this.updateIssueWithSubTask(subTask)
     if (!updated) {
@@ -120,7 +128,8 @@ export class TicketingAction {
 
   private async createIssue(
     repoString: string,
-    issueTitle: string
+    issueTitle: string,
+    issueBody?: string
   ): Promise<string | null> {
     const { owner, repo } = splitRepoAndOwner(repoString)
     core.debug(`owner: ${owner}`)
@@ -130,7 +139,7 @@ export class TicketingAction {
       owner,
       repo,
       issueTitle,
-      subTaskIssueBody()
+      subTaskIssueBody(issueBody)
     )
   }
 

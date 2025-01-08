@@ -94,7 +94,7 @@ describe('action', () => {
     expect(ticketingMock).toHaveBeenCalled()
     expect(errorMock).not.toHaveBeenCalled()
     expect(setFailedMock).not.toHaveBeenCalled()
-    expect(setOutputMock).toHaveBeenCalledTimes(2)
+    expect(setOutputMock).toHaveBeenCalledTimes(3)
     expect(runMock).toHaveReturned()
   })
 

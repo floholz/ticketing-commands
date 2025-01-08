@@ -24,6 +24,8 @@ outputs:
     description: 'Echo of the executed command'
   args:
     description: 'Echo of the executed command arguments'
+  body:
+    description: 'Echo of the passed command body (everything after the first line)'
 
 runs:
   using: node20

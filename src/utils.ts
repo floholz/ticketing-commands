@@ -7,36 +7,45 @@ export function getOctokit(): ReturnType<typeof github.getOctokit> {
   return github.getOctokit(token)
 }
 
-// https://regex101.com/r/3PkLfT/1
-const TOKENIZE_REGEX =
-  /\S+="[^"\\]*(?:\\.[^"\\]*)*"|"[^"\\]*(?:\\.[^"\\]*)*"|\S+/g
-
-export function tokenizeCommand(command: string): {
+export function tokenizeCommand(commandLine: string): {
   command: string
   args: string[]
-} {
-  let matches
-  const output: string[] = []
-  while ((matches = TOKENIZE_REGEX.exec(command))) {
-    output.push(matches[0])
+  body?: string
+} | null {
+  // https://regex101.com/r/cq1wxg/1
+  const TOKENIZE_REGEX = /\/(?<command>\S+)(?<args>[^\n]*)(?:\n(?<body>.*))?/gms
+  // https://regex101.com/r/PQre0d/1
+  const SPLIT_ARGS_REGEX = /\S+/gm
+
+  const tokens = TOKENIZE_REGEX.exec(commandLine)
+  if (!tokens || !tokens.groups?.command) {
+    return null
+  }
+  const parsed = {
+    command: tokens.groups.command,
+    args: [] as string[],
+    body: tokens.groups?.body
   }
 
-  return {
-    command: output[0],
-    args: output.slice(1)
+  let matches
+  while ((matches = SPLIT_ARGS_REGEX.exec(tokens.groups?.args ?? ''))) {
+    parsed.args.push(matches[0])
   }
+
+  return parsed
 }
 
-// https://regex101.com/r/L76z0B/1
-const TASKS_REGEX = /(?<header>###\sTasks)(?:\n-\s\[[\sx]][^\n]*)*/gm
 // https://regex101.com/r/3g73WC/1
 const TASKS_EXTENDED_REGEX =
-  /(?<header>###\sTasks)?\n-\s\[(?:\s|(?<done>x))]\s(?<task>[^\n]*)/gm
+  /(?<header>##\sTasks)?\n-\s\[(?:\s|(?<done>x))]\s(?<task>[^\n]*)/gm
 export type IssueTask = {
   name: string
   done: boolean
 }
 export function parseIssueBodyForTasks(body: string): number {
+  // https://regex101.com/r/L76z0B/1
+  const TASKS_REGEX = /(?<header>##\sTasks)(?:\n-\s\[[\sx]][^\n]*)*/gm
+
   const match = TASKS_REGEX.exec(body)
   if (!match || !match.groups?.header) {
     return -1
@@ -74,7 +83,7 @@ export function splitRepoAndOwner(repoString: string): {
 }
 
 export function subTaskIssueBody(description?: string): string {
-  let body = `### Description\n`
+  let body = `## Description\n`
   if (description) {
     body += `${description}\n`
   }
@@ -90,7 +99,7 @@ export function addTaskToIssueBody(subTask: string, body?: string): string {
     if (body.length > 0) {
       body += `\n\n`
     }
-    body += `### Tasks:`
+    body += `## Tasks:`
     bodyTaskIdx = body.length
   }
   body = `${body.slice(0, bodyTaskIdx)}\n- [ ] ${subTask}${body.slice(bodyTaskIdx)}`

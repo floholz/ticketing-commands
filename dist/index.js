@@ -34273,27 +34273,34 @@ class TicketingAction {
         else if (this.context.payload.pull_request) {
             core.debug(`Command for Pull-Request`);
         }
-        const { command, args } = (0, utils_1.tokenizeCommand)(commandLine.slice(1));
+        const tokenizedResult = (0, utils_1.tokenizeCommand)(commandLine);
+        if (!tokenizedResult) {
+            core.warning(`Could not parse command line`);
+            return;
+        }
+        const { command, args, body } = tokenizedResult;
         core.debug(`Command Name: ${command}`);
-        core.debug(`Command Args: ${args}`);
-        await this.handleCommand(command, args);
+        core.debug(`Command Args: ${args.join(' ')}`);
+        core.debug(`Command Body: ${body}`);
+        await this.handleCommand(command, args, body);
         core.setOutput('command', command);
         core.setOutput('args', args.join(' '));
+        core.setOutput('body', body);
     }
-    async handleCommand(command, args) {
+    async handleCommand(command, args, body) {
         switch (command) {
             case 'verify':
                 await this.verifyTask();
                 return true;
             case 'task':
-                await this.createTask(args);
+                await this.createTask(args, body);
                 return true;
             default:
                 core.debug(`unknown command: ${command}`);
                 return false;
         }
     }
-    async createTask(args) {
+    async createTask(args, body) {
         if (!this.config) {
             throw new Error(`Config must be loaded first`);
         }
@@ -34305,19 +34312,19 @@ class TicketingAction {
         if (!repoString) {
             throw new Error(`Could not parse sub-repository from args: ${args[0]}`);
         }
-        let subTaskName;
+        let subTaskTitle;
         if (args.length > 1) {
-            subTaskName = args.slice(1).join(' ');
+            subTaskTitle = args.slice(1).join(' ');
         }
         else {
-            subTaskName = 'Task';
+            subTaskTitle = 'Task';
         }
-        core.debug(`parsed sub task: '${subTaskName}'`);
-        const subTask = await this.createIssue(repoString, subTaskName);
+        core.debug(`parsed sub task: '${subTaskTitle}'`);
+        const subTask = await this.createIssue(repoString, subTaskTitle, body);
         if (!subTask) {
-            throw new Error(`Could not create issue in sub-repository [${repoString}]: ${subTaskName}`);
+            throw new Error(`Could not create issue in sub-repository [${repoString}]: ${subTaskTitle}`);
         }
-        core.debug(`Created issue for task in sub-repository [${repoString}]: ${subTaskName}`);
+        core.debug(`Created issue for task in sub-repository [${repoString}]: ${subTaskTitle}`);
         const updated = await this.updateIssueWithSubTask(subTask);
         if (!updated) {
             throw new Error(`Failed to update issue with subtask: ${subTask}`);
@@ -34327,11 +34334,11 @@ class TicketingAction {
     async verifyTask() {
         throw new Error(`Not implemented`);
     }
-    async createIssue(repoString, issueTitle) {
+    async createIssue(repoString, issueTitle, issueBody) {
         const { owner, repo } = (0, utils_1.splitRepoAndOwner)(repoString);
         core.debug(`owner: ${owner}`);
         core.debug(`repo: ${repo}`);
-        return (0, api_1.issuesCreate)(this.octokit, owner, repo, issueTitle, (0, utils_1.subTaskIssueBody)());
+        return (0, api_1.issuesCreate)(this.octokit, owner, repo, issueTitle, (0, utils_1.subTaskIssueBody)(issueBody));
     }
     async updateIssueWithSubTask(subTask) {
         const { owner, repo, number } = this.context.issue;
@@ -34405,24 +34412,31 @@ function getOctokit() {
     const token = core.getInput('github_token', { required: true });
     return github.getOctokit(token);
 }
-// https://regex101.com/r/3PkLfT/1
-const TOKENIZE_REGEX = /\S+="[^"\\]*(?:\\.[^"\\]*)*"|"[^"\\]*(?:\\.[^"\\]*)*"|\S+/g;
-function tokenizeCommand(command) {
-    let matches;
-    const output = [];
-    while ((matches = TOKENIZE_REGEX.exec(command))) {
-        output.push(matches[0]);
+function tokenizeCommand(commandLine) {
+    // https://regex101.com/r/cq1wxg/1
+    const TOKENIZE_REGEX = /\/(?<command>\S+)(?<args>[^\n]*)(?:\n(?<body>.*))?/gms;
+    // https://regex101.com/r/PQre0d/1
+    const SPLIT_ARGS_REGEX = /\S+/gm;
+    const tokens = TOKENIZE_REGEX.exec(commandLine);
+    if (!tokens || !tokens.groups?.command) {
+        return null;
     }
-    return {
-        command: output[0],
-        args: output.slice(1)
+    const parsed = {
+        command: tokens.groups.command,
+        args: [],
+        body: tokens.groups?.body
     };
+    let matches;
+    while ((matches = SPLIT_ARGS_REGEX.exec(tokens.groups?.args ?? ''))) {
+        parsed.args.push(matches[0]);
+    }
+    return parsed;
 }
-// https://regex101.com/r/L76z0B/1
-const TASKS_REGEX = /(?<header>###\sTasks)(?:\n-\s\[[\sx]][^\n]*)*/gm;
 // https://regex101.com/r/3g73WC/1
-const TASKS_EXTENDED_REGEX = /(?<header>###\sTasks)?\n-\s\[(?:\s|(?<done>x))]\s(?<task>[^\n]*)/gm;
+const TASKS_EXTENDED_REGEX = /(?<header>##\sTasks)?\n-\s\[(?:\s|(?<done>x))]\s(?<task>[^\n]*)/gm;
 function parseIssueBodyForTasks(body) {
+    // https://regex101.com/r/L76z0B/1
+    const TASKS_REGEX = /(?<header>##\sTasks)(?:\n-\s\[[\sx]][^\n]*)*/gm;
     const match = TASKS_REGEX.exec(body);
     if (!match || !match.groups?.header) {
         return -1;
@@ -34450,7 +34464,7 @@ function splitRepoAndOwner(repoString) {
     };
 }
 function subTaskIssueBody(description) {
-    let body = `### Description\n`;
+    let body = `## Description\n`;
     if (description) {
         body += `${description}\n`;
     }
@@ -34465,7 +34479,7 @@ function addTaskToIssueBody(subTask, body) {
         if (body.length > 0) {
             body += `\n\n`;
         }
-        body += `### Tasks:`;
+        body += `## Tasks:`;
         bodyTaskIdx = body.length;
     }
     body = `${body.slice(0, bodyTaskIdx)}\n- [ ] ${subTask}${body.slice(bodyTaskIdx)}`;
