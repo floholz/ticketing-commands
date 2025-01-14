@@ -44,7 +44,7 @@ describe('action', () => {
         case 'github_token':
           return 'GITHUB_TOKEN'
         case 'config_file':
-          return '.github/workflows/config/project-slash-cmd.yml'
+          return '.github/workflows/config/ticketing-cmd.yml'
         default:
           return ''
       }

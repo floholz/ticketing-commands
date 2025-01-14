@@ -1,4 +1,4 @@
-project_url: https://github.com/orgs/<orgName>/projects/<projectNumber>
+project_url: 'https://github.com/orgs/<orgName>/projects/<projectNumber>'
 
 repositories:
   floholz/backend-repo: ['backend', 'be']

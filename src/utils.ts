@@ -42,29 +42,6 @@ export type IssueTask = {
   name: string
   done: boolean
 }
-export function parseIssueBodyForTasks(body: string): number {
-  // https://regex101.com/r/L76z0B/1
-  const TASKS_REGEX = /(?<header>##\sTasks)(?:\n-\s\[[\sx]][^\n]*)*/gm
-
-  const match = TASKS_REGEX.exec(body)
-  if (!match || !match.groups?.header) {
-    return -1
-  }
-  return match.index + match[0].length
-}
-export function parseRepoString(
-  searchTag: string,
-  repos: Repositories
-): string {
-  for (const repoName in repos) {
-    for (const repoTag of repos[repoName]) {
-      if (searchTag === repoTag) {
-        return repoName
-      }
-    }
-  }
-  return ''
-}
 
 export function splitRepoAndOwner(repoString: string): {
   owner: string
@@ -89,6 +66,19 @@ export function subTaskIssueBody(description?: string): string {
   }
   return body
 }
+export function parseRepoString(
+  searchTag: string,
+  repos: Repositories
+): string {
+  for (const repoName in repos) {
+    for (const repoTag of repos[repoName]) {
+      if (searchTag === repoTag) {
+        return repoName
+      }
+    }
+  }
+  return ''
+}
 
 export function addTaskToIssueBody(subTask: string, body?: string): string {
   if (!body) {
@@ -97,9 +87,9 @@ export function addTaskToIssueBody(subTask: string, body?: string): string {
   let bodyTaskIdx = parseIssueBodyForTasks(body)
   if (bodyTaskIdx === -1) {
     if (body.length > 0) {
-      body += `\n\n`
+      body += `\n`
     }
-    body += `## Tasks:`
+    body += `## Tasks`
     bodyTaskIdx = body.length
   }
   body = `${body.slice(0, bodyTaskIdx)}\n- [ ] ${subTask}${body.slice(bodyTaskIdx)}`
@@ -107,4 +97,15 @@ export function addTaskToIssueBody(subTask: string, body?: string): string {
     body += `\n`
   }
   return body
+}
+
+function parseIssueBodyForTasks(body: string): number {
+  // https://regex101.com/r/L76z0B/1
+  const TASKS_REGEX = /(?<header>##\sTasks)(?:\n-\s\[[\sx]][^\n]*)*/gm
+
+  const match = TASKS_REGEX.exec(body)
+  if (!match || !match.groups?.header) {
+    return -1
+  }
+  return match.index + match[0].length
 }
