@@ -34401,10 +34401,9 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getOctokit = getOctokit;
 exports.tokenizeCommand = tokenizeCommand;
-exports.parseIssueBodyForTasks = parseIssueBodyForTasks;
-exports.parseRepoString = parseRepoString;
 exports.splitRepoAndOwner = splitRepoAndOwner;
 exports.subTaskIssueBody = subTaskIssueBody;
+exports.parseRepoString = parseRepoString;
 exports.addTaskToIssueBody = addTaskToIssueBody;
 const core = __importStar(__nccwpck_require__(7484));
 const github = __importStar(__nccwpck_require__(3228));
@@ -34434,25 +34433,6 @@ function tokenizeCommand(commandLine) {
 }
 // https://regex101.com/r/3g73WC/1
 const TASKS_EXTENDED_REGEX = /(?<header>##\sTasks)?\n-\s\[(?:\s|(?<done>x))]\s(?<task>[^\n]*)/gm;
-function parseIssueBodyForTasks(body) {
-    // https://regex101.com/r/L76z0B/1
-    const TASKS_REGEX = /(?<header>##\sTasks)(?:\n-\s\[[\sx]][^\n]*)*/gm;
-    const match = TASKS_REGEX.exec(body);
-    if (!match || !match.groups?.header) {
-        return -1;
-    }
-    return match.index + match[0].length;
-}
-function parseRepoString(searchTag, repos) {
-    for (const repoName in repos) {
-        for (const repoTag of repos[repoName]) {
-            if (searchTag === repoTag) {
-                return repoName;
-            }
-        }
-    }
-    return '';
-}
 function splitRepoAndOwner(repoString) {
     const splits = repoString.split('/');
     if (splits.length !== 2) {
@@ -34470,6 +34450,16 @@ function subTaskIssueBody(description) {
     }
     return body;
 }
+function parseRepoString(searchTag, repos) {
+    for (const repoName in repos) {
+        for (const repoTag of repos[repoName]) {
+            if (searchTag === repoTag) {
+                return repoName;
+            }
+        }
+    }
+    return '';
+}
 function addTaskToIssueBody(subTask, body) {
     if (!body) {
         body = '';
@@ -34477,9 +34467,9 @@ function addTaskToIssueBody(subTask, body) {
     let bodyTaskIdx = parseIssueBodyForTasks(body);
     if (bodyTaskIdx === -1) {
         if (body.length > 0) {
-            body += `\n\n`;
+            body += `\n`;
         }
-        body += `## Tasks:`;
+        body += `## Tasks`;
         bodyTaskIdx = body.length;
     }
     body = `${body.slice(0, bodyTaskIdx)}\n- [ ] ${subTask}${body.slice(bodyTaskIdx)}`;
@@ -34487,6 +34477,15 @@ function addTaskToIssueBody(subTask, body) {
         body += `\n`;
     }
     return body;
+}
+function parseIssueBodyForTasks(body) {
+    // https://regex101.com/r/L76z0B/1
+    const TASKS_REGEX = /(?<header>##\sTasks)(?:\n-\s\[[\sx]][^\n]*)*/gm;
+    const match = TASKS_REGEX.exec(body);
+    if (!match || !match.groups?.header) {
+        return -1;
+    }
+    return match.index + match[0].length;
 }
 
 

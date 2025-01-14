@@ -1,6 +1,7 @@
 import * as utils from '../src/utils'
 
 const tokenizeCommandMock = jest.spyOn(utils, 'tokenizeCommand')
+const addTaskToIssueBodyMock = jest.spyOn(utils, 'addTaskToIssueBody')
 
 describe('utils', () => {
   beforeEach(() => {
@@ -45,5 +46,49 @@ e.g.: a description can be passed directly`
     utils.tokenizeCommand('just a simple comment')
     expect(tokenizeCommandMock).toHaveReturned()
     expect(tokenizeCommandMock.mock.results[0].value).toEqual(null)
+  })
+
+  it('add task to existing task list', () => {
+    const subTask = 'Additional Task'
+    const body = `
+## Description
+description of the ticket
+
+## Tasks
+- [ ] Task 1
+- [ ] Task 2
+
+some other info
+`
+    utils.addTaskToIssueBody(subTask, body)
+    expect(addTaskToIssueBodyMock).toHaveReturned()
+    expect(addTaskToIssueBodyMock.mock.results[0].value).toEqual(`
+## Description
+description of the ticket
+
+## Tasks
+- [ ] Task 1
+- [ ] Task 2
+- [ ] Additional Task
+
+some other info
+`)
+  })
+
+  it('add task to empty task list', () => {
+    const subTask = 'Task 1'
+    const body = `
+## Description
+description of the ticket
+`
+    utils.addTaskToIssueBody(subTask, body)
+    expect(addTaskToIssueBodyMock).toHaveReturned()
+    expect(addTaskToIssueBodyMock.mock.results[0].value).toEqual(`
+## Description
+description of the ticket
+
+## Tasks
+- [ ] Task 1
+`)
   })
 })
