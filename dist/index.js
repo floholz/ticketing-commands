@@ -34342,7 +34342,7 @@ class TicketingAction {
     }
     async updateIssueWithSubTask(subTask) {
         const { owner, repo, number } = this.context.issue;
-        const body = (0, utils_1.addTaskToIssueBody)(subTask, this.context.payload?.body);
+        const body = (0, utils_1.addTaskToIssueBody)(subTask, this.context.payload?.issue?.body);
         return (0, api_1.issuesUpdate)(this.octokit, owner, repo, number, body);
     }
     async checkAuthorPermissions() {

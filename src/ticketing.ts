@@ -145,7 +145,7 @@ export class TicketingAction {
 
   private async updateIssueWithSubTask(subTask: string): Promise<boolean> {
     const { owner, repo, number } = this.context.issue
-    const body = addTaskToIssueBody(subTask, this.context.payload?.body)
+    const body = addTaskToIssueBody(subTask, this.context.payload?.issue?.body)
     return issuesUpdate(this.octokit, owner, repo, number, body)
   }
 

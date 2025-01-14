@@ -91,4 +91,17 @@ description of the ticket
 - [ ] Task 1
 `)
   })
+
+  it('add task to minimal ticket', () => {
+    const subTask = 'Additional Task'
+    const body = `## Tasks
+- [ ] seedback-at/seedback-user-app#4
+`
+    utils.addTaskToIssueBody(subTask, body)
+    expect(addTaskToIssueBodyMock).toHaveReturned()
+    expect(addTaskToIssueBodyMock.mock.results[0].value).toEqual(`## Tasks
+- [ ] seedback-at/seedback-user-app#4
+- [ ] Additional Task
+`)
+  })
 })
